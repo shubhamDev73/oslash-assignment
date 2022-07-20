@@ -1,0 +1,42 @@
+# deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oslash
+  labels:
+    app: oslash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oslash
+  template:
+    metadata:
+      labels:
+        app: oslash
+    spec:
+      containers:
+        - name: oslash
+          image: oslash/server:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: oslash
+---
+
+# services
+apiVersion: v1
+kind: Service
+metadata:
+  name: oslash
+  labels:
+    app: oslash
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: oslash
