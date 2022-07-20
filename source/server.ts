@@ -1,6 +1,8 @@
 /** source/server.ts */
 import http from 'http';
 import express, { Request, Response, NextFunction, Express } from 'express';
+import authRouter from './auth/routes';
+import shortcutRouter from './shortcut/routes';
 
 const router: Express = express();
 
@@ -18,6 +20,10 @@ router.use((req: Request, res: Response, next: NextFunction) => {
     }
     next();
 });
+
+// base routes
+router.use('/auth', authRouter);
+router.use('/shortcut', shortcutRouter);
 
 // error handling
 router.use((req, res, next) => {
