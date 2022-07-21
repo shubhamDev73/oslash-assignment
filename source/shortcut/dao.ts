@@ -1,4 +1,4 @@
-import { NewShortcut } from "./interface";
+import { NewShortcut, Shortcut, ShortcutScore } from "./interface";
 import db from "../db";
 import { QueryResult } from "pg";
 
@@ -46,6 +46,27 @@ export const deleteShortcutFromShortlink = (userId: string, shortlink: string, c
                 callback(err);
             } else {
                 callback(null);
+            }
+        }
+    );
+};
+
+export const searchShortcutsFromString = async (userId: string, query: string, callback: Function) => {
+    db.query(
+        "SELECT * FROM shortcuts WHERE user_id = $1 AND (shortlink = $2 OR description = $2);",
+        [userId, query],
+
+        (err, result) => {
+            if (err) {
+                callback(err);
+            } else {
+                const shortcutScores: ShortcutScore[] = result.rows.map((shortcut: Shortcut) => {
+                    return {
+                        shortcut: shortcut,
+                        score: shortcut.shortlink === query ? 1 : 0.5
+                    };
+                });
+                callback(null, shortcutScores);
             }
         }
     );

@@ -8,3 +8,8 @@ export interface NewShortcut {
 export interface Shortcut extends NewShortcut {
     id: number
 }
+
+export interface ShortcutScore {
+    shortcut: Shortcut,
+    score: number
+}
