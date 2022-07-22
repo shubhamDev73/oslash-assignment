@@ -64,6 +64,6 @@ router.use((req, res, next) => {
 });
 
 // server
-const server = http.createServer(router);
-const port: any = process.env.PORT ?? 8080;
+export const server = http.createServer(router);
+const port: any = process.env.PORT ?? Math.floor(Math.random() * 1000) + 8000;
 server.listen(port, () => console.log(`The server is running on port ${port}`));
