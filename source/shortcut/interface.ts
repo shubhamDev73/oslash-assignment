@@ -10,6 +10,6 @@ export interface Shortcut extends NewShortcut {
 }
 
 export interface ShortcutScore {
-    shortcut: Shortcut,
+    shortcutId: number,
     score: number
 }

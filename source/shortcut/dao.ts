@@ -1,6 +1,8 @@
 import { NewShortcut, Shortcut, ShortcutScore } from "./interface";
-import db from "../db";
+import db, { couchbase } from "../db";
 import { QueryResult } from "pg";
+
+const APP_ID = "shortcut";
 
 export const createNewShortcut = (userId: string, shortcut: NewShortcut, callback: Function) => {
     if (shortcut.tags != null && shortcut.tags.length == 0) {
@@ -15,7 +17,18 @@ export const createNewShortcut = (userId: string, shortcut: NewShortcut, callbac
             if (err) {
                 callback(err);
             } else {
-                callback(null, result.rows[0]);
+                const shortcutId = result.rows[0];
+
+                // creating index for all search words with scores
+                couchbase.append(APP_ID, userId, shortcut.shortlink, {shortcutId: shortcutId, score: 1});
+                shortcut.description.split(" ").forEach(word => {
+                    couchbase.append(APP_ID, userId, word, {shortcutId: shortcutId, score: 0.25});
+                });
+                shortcut.tags?.forEach(word => {
+                    couchbase.append(APP_ID, userId, word, {shortcutId: shortcutId, score: 0.75});
+                });
+
+                callback(null, shortcutId);
             }
         }
     );
@@ -52,22 +65,7 @@ export const deleteShortcutFromShortlink = (userId: string, shortlink: string, c
 };
 
 export const searchShortcutsFromString = async (userId: string, query: string, callback: Function) => {
-    db.query(
-        "SELECT * FROM shortcuts WHERE user_id = $1 AND (shortlink = $2 OR description = $2);",
-        [userId, query],
-
-        (err, result) => {
-            if (err) {
-                callback(err);
-            } else {
-                const shortcutScores: ShortcutScore[] = result.rows.map((shortcut: Shortcut) => {
-                    return {
-                        shortcut: shortcut,
-                        score: shortcut.shortlink === query ? 1 : 0.5
-                    };
-                });
-                callback(null, shortcutScores);
-            }
-        }
-    );
+    couchbase.get(APP_ID, userId, query, (err, result) => {
+        callback(err, result?.content);
+    });
 };

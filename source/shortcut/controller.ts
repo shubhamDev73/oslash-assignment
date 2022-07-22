@@ -78,19 +78,17 @@ const searchShortcuts = (req: Request, res: Response, next: NextFunction) => {
         // combine wordShortcutScores to calculate final score for a shortcut from sum of all word scores
         for (const shortcutScores of wordShortcutScores) {
             for (const shortcutScore of shortcutScores) {
-                const shortcut: Shortcut = shortcutScore.shortcut;
-                const oldScore: number = idShortcutScoreMapping.get(shortcut.id)?.score ?? 0;
-                idShortcutScoreMapping.set(shortcut.id, {shortcut: shortcut, score: oldScore + shortcutScore.score});
+                const shortcutId: number = shortcutScore.shortcutId;
+                const oldScore: number = idShortcutScoreMapping.get(shortcutId)?.score ?? 0;
+                idShortcutScoreMapping.set(shortcutId, {shortcutId: shortcutId, score: oldScore + shortcutScore.score});
             }
         }
 
         // finally display after sorting based on final score for shortcuts
         return res.status(200).json(
-            getDisplayShortcuts(
-                Array.from(idShortcutScoreMapping.values())
-                .sort((a: ShortcutScore, b: ShortcutScore) => b.score - a.score)
-                .map((value: ShortcutScore) => value.shortcut)
-            )
+            Array.from(idShortcutScoreMapping.values())
+            .sort((a: ShortcutScore, b: ShortcutScore) => b.score - a.score)
+            .map((value: ShortcutScore) => value.shortcutId)
         );
     }).catch((err) => {
         return res.status(200).json({
