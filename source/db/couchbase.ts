@@ -17,8 +17,8 @@ export class Couchbase {
         this.collection = bucket.defaultCollection();
     }
 
-    async insert (appId: string, userId: string, key: string, data: any, timeout?: number) {
-        this.collection?.upsert(this.getKey(appId, userId, key), data, {timeout: timeout ?? 0});
+    async insert (appId: string, userId: string, key: string, data: any, timeout?: number, callback?: couchbase.NodeCallback<couchbase.MutationResult>) {
+        this.collection?.upsert(this.getKey(appId, userId, key), data, {timeout: timeout ?? 0}, callback);
     }
 
     async append (appId: string, userId: string, key: string, data: any) {
@@ -31,9 +31,15 @@ export class Couchbase {
         });
     }
 
-    private async exists (appId: string, userId: string, key: string, data: any, callback: Function) {
-        this.collection?.insert(this.getKey(appId, userId, key), [data], undefined, (err, result) => {
-            callback(err !== undefined);
+    async exists (appId: string, userId: string, key: string, data?: any, callback?: Function) {
+        const keyString: string = this.getKey(appId, userId, key);
+
+        this.collection?.insert(keyString, [data ?? ""], undefined, async (err, result) => {
+            const exists: boolean = err != undefined;
+            if (!data && !exists) {
+                await this.collection?.remove(keyString);
+            }
+            callback?.(exists);
         });
     }
 

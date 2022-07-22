@@ -14,7 +14,7 @@ function getDisplayShortcuts(shortcuts?: Shortcut[]) {
 }
 
 const createShortcut = (req: Request, res: Response, next: NextFunction) => {
-    return createNewShortcut(res.locals.userId, req.body, (err?: Error, result?: number) => {
+    return createNewShortcut(res.locals.session.userId, req.body, (err?: Error, result?: number) => {
         if (err != null) {
             return res.status(200).json({
                 message: "error",
@@ -29,7 +29,7 @@ const createShortcut = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const listShortcuts = (req: Request, res: Response, next: NextFunction) => {
-    return getAllShortcutsForUser(res.locals.userId, (err?: Error, shortcuts?: Shortcut[]) => {
+    return getAllShortcutsForUser(res.locals.session.userId, (err?: Error, shortcuts?: Shortcut[]) => {
         if (err != null) {
             return res.status(200).json({
                 message: "error",
@@ -42,7 +42,7 @@ const listShortcuts = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const deleteShortcut = (req: Request, res: Response, next: NextFunction) => {
-    return deleteShortcutFromShortlink(res.locals.userId, req.params.shortlink, (err?: Error) => {
+    return deleteShortcutFromShortlink(res.locals.session.userId, req.params.shortlink, (err?: Error) => {
         if (err != null) {
             return res.status(200).json({
                 message: "error",
@@ -64,7 +64,7 @@ const searchShortcuts = (req: Request, res: Response, next: NextFunction) => {
     // for each query word, search shortcuts and get scores
     new Promise<void>((resolve, reject) => {
         queryWords.forEach((word: string, index: number) => {
-            searchShortcutsFromString(res.locals.userId, word, (err: Error, shortcutScores?: ShortcutScore[]) => {
+            searchShortcutsFromString(res.locals.session.userId, word, (err: Error, shortcutScores?: ShortcutScore[]) => {
                 if (err) { reject(err); }
 
                 wordShortcutScores[index] = shortcutScores ?? [];

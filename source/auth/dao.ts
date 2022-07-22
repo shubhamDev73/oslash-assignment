@@ -1,6 +1,8 @@
-import db from "../db";
+import db, { couchbase } from "../db";
 import { QueryResult } from "pg";
-import { NewUser } from "./interface";
+import { NewUser, Session } from "./interface";
+
+const APP_ID = "auth";
 
 export const createNewUser = (user: NewUser, callback: Function) => {
     db.query(
@@ -31,3 +33,13 @@ export const getUserFromUsername = (username: string, callback: Function) => {
         }
     );
 };
+
+export const expireToken = (token: string, session: Session, callback: Function) => {
+    couchbase.insert(APP_ID, session.userId.toString(), token, true, session.expires - Date.now(), (err, result) => callback());
+}
+
+export const checkToken = (token: string, session: Session, callback: Function) => {
+    couchbase.exists(APP_ID, session.userId.toString(), token, null, (exists: boolean) => {
+        callback(!exists && session.expires > Date.now());
+    });
+}

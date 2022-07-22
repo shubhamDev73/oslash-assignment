@@ -4,6 +4,7 @@ import express, { Request, Response, NextFunction, Express } from 'express';
 import authRouter from './auth/routes';
 import shortcutRouter from './shortcut/routes';
 import authUtils from './auth/utils';
+import { DecodeResult } from './auth/interface';
 
 const router: Express = express();
 
@@ -22,8 +23,8 @@ router.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-// auth middleware (not applied on auth)
-router.use(/\/((?!auth).)*/, (req: Request, res: Response, next: NextFunction) => {
+// auth middleware
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const unauthorized = (error: string) => res.status(401).json({
         message: "error",
         error: error
@@ -36,19 +37,22 @@ router.use(/\/((?!auth).)*/, (req: Request, res: Response, next: NextFunction) =
         return unauthorized("Token not found.");
     }
 
-    const decodeResult = authUtils.decodeToken(token);
-
-    if (!decodeResult.valid) {
-        return unauthorized("Failed to decode or validate authorization token.");
-    }
-
-    res.locals.userId = decodeResult.userId;
-
-    next();
-});
+    authUtils.decodeToken(token, (decodeResult: DecodeResult) => {
+        if (!decodeResult.valid) {
+            return unauthorized("Failed to decode or validate authorization token.");
+        }
+    
+        res.locals.session = decodeResult.session;
+        res.locals.token = token;
+    
+        next();
+    });
+}
 
 // base routes
+router.use('/auth/logout', authMiddleware);
 router.use('/auth', authRouter);
+router.use(authMiddleware);
 router.use('/shortcut', shortcutRouter);
 
 // error handling

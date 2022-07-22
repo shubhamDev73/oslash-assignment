@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { createNewUser, getUserFromUsername } from './dao';
+import { createNewUser, expireToken, getUserFromUsername } from './dao';
 import { Request, Response, NextFunction } from 'express';
 import authUtils from './utils';
 import { NewUser, User } from './interface';
@@ -57,7 +57,9 @@ const login = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const logout = (req: Request, res: Response, next: NextFunction) => {
-    return res.status(200);
+    return expireToken(res.locals.token, res.locals.session, () => {
+        return res.status(200);
+    });
 };
 
 export default { register, login, logout };
