@@ -9,7 +9,3 @@ data:
   POSTGRES_PASSWORD: postgres
   POSTGRES_DB: oslash
   AUTH_SECRET_KEY: secret-key_secret-key_secret-key_secret-key_secret-key_secret-key_secret-key_secret-key_secret-key_secret-key_secret-key
-  COUCHBASE_HOST: couchbase-srv
-  COUCHBASE_USER: Administrator
-  COUCHBASE_PASSWORD: password
-  COUCHBASE_BUCKET: oslash

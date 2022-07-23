@@ -1,6 +1,12 @@
-import { createNewShortcut, deleteShortcutFromShortlink, getAllShortcutsForUser, searchShortcutsFromString } from './dao'
+import { createNewShortcut, deleteShortcutFromShortlink, getAllShortcutsForUser, getShortcutsFromIds, insertShortcutScore, searchShortcutsFromWord } from './dao'
 import { Request, Response, NextFunction } from 'express';
-import { Shortcut, ShortcutScore } from './interface';
+import { NewShortcut, Shortcut, ShortcutScore } from './interface';
+
+const sendCorrectResponse = (res: Response) => res.status(200).json({message: "success"});
+const sendErrorResponse = (res: Response, error: Error) => res.status(200).json({
+    message: "error",
+    error: error.message
+});
 
 function getDisplayShortcuts(shortcuts?: Shortcut[]) {
     return shortcuts?.map((shortcut: Shortcut) => {
@@ -13,89 +19,84 @@ function getDisplayShortcuts(shortcuts?: Shortcut[]) {
     }) ?? [];
 }
 
-const createShortcut = (req: Request, res: Response, next: NextFunction) => {
-    return createNewShortcut(res.locals.session.userId, req.body, (err?: Error, result?: number) => {
-        if (err != null) {
-            return res.status(200).json({
-                message: "error",
-                error: err.message
-            });
+function setWordScores (wordShortcutScores: Map<string, number>, words: string[], score: number) {
+    for (const word of words) {
+        if (wordShortcutScores.has(word)) {
+            const oldScore: number = wordShortcutScores.get(word) ?? 0;
+            wordShortcutScores.set(word, oldScore + score);
+        } else {
+            wordShortcutScores.set(word, score);
         }
+    }
+}
 
-        return res.status(200).json({
-            message: "success"
+const createShortcut = (req: Request, res: Response, next: NextFunction) => {
+    const userId = res.locals.session.userId;
+    const shortcut: NewShortcut = req.body;
+
+    createNewShortcut(userId, shortcut)
+    .then((shortcutId: number) => {
+        let wordShortcutScores: Map<string, number> = new Map();
+
+        // creating index for all search words with scores
+        wordShortcutScores.set(shortcut.shortlink, 1);
+        setWordScores(wordShortcutScores, shortcut.description.split(" "), 0.25);
+        setWordScores(wordShortcutScores, shortcut.tags ?? [], 0.75);
+
+        // creating corresponding redis entries
+        wordShortcutScores.forEach((score: number, word: string) => {
+            insertShortcutScore(userId, word, {shortcutId: shortcutId, score: score});
         });
-    });
+
+        sendCorrectResponse(res);
+    })
+    .catch((err) => sendErrorResponse(res, err));
 };
 
 const listShortcuts = (req: Request, res: Response, next: NextFunction) => {
-    return getAllShortcutsForUser(res.locals.session.userId, (err?: Error, shortcuts?: Shortcut[]) => {
-        if (err != null) {
-            return res.status(200).json({
-                message: "error",
-                error: err.message
-            });
-        }
-
-        return res.status(200).json(getDisplayShortcuts(shortcuts));
-    });
+    getAllShortcutsForUser(res.locals.session.userId)
+    .then((shortcuts: Shortcut[]) => res.status(200).json(getDisplayShortcuts(shortcuts)))
+    .catch((err) => sendErrorResponse(res, err));
 };
 
 const deleteShortcut = (req: Request, res: Response, next: NextFunction) => {
-    return deleteShortcutFromShortlink(res.locals.session.userId, req.params.shortlink, (err?: Error) => {
-        if (err != null) {
-            return res.status(200).json({
-                message: "error",
-                error: err.message
-            });
-        }
-
-        return res.status(200).end();
-    });
+    deleteShortcutFromShortlink(res.locals.session.userId, req.params.shortlink)
+    .then(() => sendCorrectResponse(res))
+    .catch((err) => sendErrorResponse(res, err));
 };
 
 const searchShortcuts = (req: Request, res: Response, next: NextFunction) => {
-    const query: string = req.query.query as string;
-    const queryWords: string[] = query.split(" ");
-    let wordShortcutScores: ShortcutScore[][] = queryWords.map((word: string) => []);
+    const userId = res.locals.session.userId;
+    const queryWords: string[] = (req.query.query as string).split(" ");
     let idShortcutScoreMapping: Map<number, ShortcutScore> = new Map();
     var numWordsSearchComplete: number = 0;
 
     // for each query word, search shortcuts and get scores
     new Promise<void>((resolve, reject) => {
         queryWords.forEach((word: string, index: number) => {
-            searchShortcutsFromString(res.locals.session.userId, word, (err: Error, shortcutScores?: ShortcutScore[]) => {
-                if (err) { reject(err); }
-
-                wordShortcutScores[index] = shortcutScores ?? [];
+            searchShortcutsFromWord(userId, word)
+            .then((shortcutScores: { [shortcutId: string]: string }) => {
+                for (const id in shortcutScores) {
+                    const shortcutId: number = parseInt(id);
+                    const oldScore: number = idShortcutScoreMapping.get(shortcutId)?.score ?? 0;
+                    idShortcutScoreMapping.set(shortcutId, {shortcutId: shortcutId, score: oldScore + parseFloat(shortcutScores[shortcutId])});
+                }
                 numWordsSearchComplete++;
 
                 // if all words searched, resolve
                 if (numWordsSearchComplete == queryWords.length) { resolve(); }
-            });
+            })
+            .catch(reject);
         });
-    }).then(() => {
-        // combine wordShortcutScores to calculate final score for a shortcut from sum of all word scores
-        for (const shortcutScores of wordShortcutScores) {
-            for (const shortcutScore of shortcutScores) {
-                const shortcutId: number = shortcutScore.shortcutId;
-                const oldScore: number = idShortcutScoreMapping.get(shortcutId)?.score ?? 0;
-                idShortcutScoreMapping.set(shortcutId, {shortcutId: shortcutId, score: oldScore + shortcutScore.score});
-            }
-        }
 
+    }).then(() => getShortcutsFromIds(userId, Array.from(idShortcutScoreMapping.keys())))
+
+    .then((shortcuts: Shortcut[]) => {
         // finally display after sorting based on final score for shortcuts
-        return res.status(200).json(
-            Array.from(idShortcutScoreMapping.values())
-            .sort((a: ShortcutScore, b: ShortcutScore) => b.score - a.score)
-            .map((value: ShortcutScore) => value.shortcutId)
-        );
-    }).catch((err) => {
-        return res.status(200).json({
-            message: "error",
-            error: err.message
-        });
-    });
+        shortcuts.sort((a, b) => (idShortcutScoreMapping.get(b.id)?.score ?? 0) - (idShortcutScoreMapping.get(a.id)?.score ?? 0))
+        return res.status(200).json(getDisplayShortcuts(shortcuts));
+
+    }).catch((err) => sendErrorResponse(res, err));
 };
 
 export default { createShortcut, listShortcuts, deleteShortcut, searchShortcuts };

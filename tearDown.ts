@@ -1,4 +1,4 @@
-import db from './source/db';
+import { db } from './source/db';
 
 export default async () => {
     await db.query('DROP TABLE shortcuts;');

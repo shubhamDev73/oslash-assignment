@@ -1,6 +1,6 @@
 import { encode, decode, TAlgorithm } from "jwt-simple";
 import { checkToken } from "./dao";
-import { Session } from "./interface";
+import { DecodeResult, Session } from "./interface";
 
 const algorithm: TAlgorithm = "HS512"; // Always use HS512 to sign the token
 const expirationDelay: number = 15 * 60 * 1000; // 15 mins in milliseconds
@@ -19,15 +19,12 @@ function encodeUserId(userId: number): string {
     return encode(session, SECRET_KEY, algorithm);
 }
 
-function decodeToken(token: string, callback: Function) {
+const decodeToken = (token: string) => new Promise<DecodeResult>((resolve, reject) => {
     try {
         const session: Session = decode(token, SECRET_KEY, false, algorithm);
-        checkToken(token, session, (valid: boolean) => {
-            callback({valid: valid, session: session});
-        });
-    } catch (_e) {
-        callback({valid: false});
-    }
-}
+        checkToken(token, session)
+        .then((valid: boolean) => resolve({valid: valid, session: session}))
+    } catch (_e) { reject(); }
+});
 
 export default { encodeUserId, decodeToken };

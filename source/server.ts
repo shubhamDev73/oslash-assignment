@@ -1,4 +1,3 @@
-/** source/server.ts */
 import http from 'http';
 import express, { Request, Response, NextFunction, Express } from 'express';
 import authRouter from './auth/routes';
@@ -18,7 +17,7 @@ router.use((req: Request, res: Response, next: NextFunction) => {
     res.header('Access-Control-Allow-Headers', 'origin, Content-Type, Accept, Authorization');
     if (req.method === 'OPTIONS') {
         res.header('Access-Control-Allow-Methods', 'GET POST DELETE');
-        return res.status(200).json({});
+        return res.status(200).end();
     }
     next();
 });
@@ -37,7 +36,8 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
         return unauthorized("Token not found.");
     }
 
-    authUtils.decodeToken(token, (decodeResult: DecodeResult) => {
+    authUtils.decodeToken(token)
+    .then((decodeResult: DecodeResult) => {
         if (!decodeResult.valid) {
             return unauthorized("Failed to decode or validate authorization token.");
         }
@@ -46,7 +46,8 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
         res.locals.token = token;
     
         next();
-    });
+    })
+    .catch((err) => unauthorized("Failed to decode or validate authorization token."));
 }
 
 // base routes
@@ -56,12 +57,10 @@ router.use(authMiddleware);
 router.use('/shortcut', shortcutRouter);
 
 // error handling
-router.use((req, res, next) => {
-    return res.status(404).json({
-        message: 'error',
-        error: 'not found'
-    });
-});
+router.use((req, res, next) => res.status(404).json({
+    message: 'error',
+    error: 'not found'
+}));
 
 // server
 export const server = http.createServer(router);

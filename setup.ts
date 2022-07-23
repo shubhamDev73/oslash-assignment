@@ -1,4 +1,4 @@
-import db from './source/db';
+import { db } from './source/db';
 import fs from 'fs'
 
 export default async () => {

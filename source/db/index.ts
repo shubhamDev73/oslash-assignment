@@ -1,7 +1,10 @@
-import { db } from "./postgres";
-import { Couchbase } from "./couchbase";
+import { config } from 'dotenv';
 
-export const couchbase = new Couchbase();
-couchbase.initialize();
+config();
 
-export default db
+import { db as postgres } from "./postgres";
+import { redis as redisWrapper } from './redis';
+
+export const db = postgres;
+export const redis = redisWrapper;
+redis.initialise();
