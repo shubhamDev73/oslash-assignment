@@ -3,7 +3,8 @@ import { checkToken } from "./dao";
 import { DecodeResult, Session } from "./interface";
 
 const algorithm: TAlgorithm = "HS512"; // Always use HS512 to sign the token
-const expirationDelay: number = 15 * 60 * 1000; // 15 mins in milliseconds
+const expirtaionTime = process.env.NODE_ENV == 'test' ? 10 : 15 * 60 // 10 sec for tests, 15 mins else
+const expirationDelay: number = expirtaionTime * 1000; // in milliseconds
 const SECRET_KEY: string = process.env.AUTH_SECRET_KEY ?? "secret-key_secret-key_secret-key_secret-key_secret-key_secret-key_secret-key";
 
 function encodeUserId(userId: number): string {

@@ -5,5 +5,5 @@ export const db = new Pool({
   port: parseInt(process.env.POSTGRES_PORT || '5432'),
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_DB
+  database: process.env.NODE_ENV == 'test' ? process.env.POSTGRES_TEST_DB : process.env.POSTGRES_DB
 });

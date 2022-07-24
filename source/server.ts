@@ -64,5 +64,6 @@ router.use((req, res, next) => res.status(404).json({
 
 // server
 export const server = http.createServer(router);
-const port: any = process.env.PORT ?? Math.floor(Math.random() * 1000) + 8000;
+const randomPort = Math.floor(Math.random() * 1000) + 8000;
+const port = process.env.NODE_ENV == 'test' ? randomPort : 8080;
 server.listen(port, () => console.log(`The server is running on port ${port}`));

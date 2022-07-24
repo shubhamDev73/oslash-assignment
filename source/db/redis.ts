@@ -5,7 +5,10 @@ class Redis {
     private client = createClient();
 
     async initialise () {
-        await this.client.connect();
+        await this.client.connect()
+        await this.client.select(parseInt(
+            (process.env.NODE_ENV == 'test' ? process.env.REDIS_TEST_DB : process.env.REDIS_DB) ?? '0'
+        ));
     }
 
     getKey (appId: string, userId: string, key: string): string {
@@ -38,6 +41,11 @@ class Redis {
 
     hDel (appId: string, userId: string, key: string, hKey: string) {
         return this.client.hDel(this.getKey(appId, userId, key), hKey)
+    }
+
+    close () {
+        return this.client.flushDb()
+                .then(() => this.client.quit());
     }
 
 }
