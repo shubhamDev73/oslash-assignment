@@ -72,6 +72,10 @@ export const insertShortcutScore = (userId: string, word: string, shortcutScore:
     return redis.hSet(APP_ID, userId, word, shortcutScore.shortcutId.toString(), shortcutScore.score);
 };
 
+export const deleteWordShortcut = (userId: string, word: string, shortcutId: number) => {
+    return redis.hDel(APP_ID, userId, word, shortcutId.toString());
+};
+
 export const searchShortcutsFromWord = (userId: string, word: string) => new Promise<{ [shortcutId: string]: string }>((resolve, reject) => {
     redis.hGetAll(APP_ID, userId, word)
     .then(resolve)

@@ -1,4 +1,4 @@
-import { createNewShortcut, deleteShortcutFromShortlink, getAllShortcutsForUser, getShortcutsFromIds, insertShortcutScore, searchShortcutsFromWord } from './dao'
+import { createNewShortcut, deleteShortcutFromShortlink, deleteWordShortcut, getAllShortcutsForUser, getShortcutFromShortlink, getShortcutsFromIds, insertShortcutScore, searchShortcutsFromWord } from './dao'
 import { Request, Response, NextFunction } from 'express';
 import { NewShortcut, Shortcut, ShortcutScore } from './interface';
 
@@ -60,7 +60,24 @@ const listShortcuts = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const deleteShortcut = (req: Request, res: Response, next: NextFunction) => {
-    deleteShortcutFromShortlink(res.locals.session.userId, req.params.shortlink)
+    const userId = res.locals.session.userId;
+    const shortlink = req.params.shortlink;
+    let words: Set<string> = new Set();
+    var shortcutId: number;
+
+    getShortcutFromShortlink(userId, shortlink)
+    .then((shortcut: Shortcut) => {
+        // creating set of all words
+        words.add(shortcut.shortlink);
+        shortcut.description.split(" ").forEach((word) => words.add(word));
+        (shortcut.tags as unknown as string).split(",").forEach((word) => words.add(word));
+        shortcutId = shortcut.id;
+    })
+    .then(() => deleteShortcutFromShortlink(userId, shortlink))
+    .then(() => {
+        // deleting all words redis entries
+        words.forEach((word: string) => deleteWordShortcut(userId, word, shortcutId));
+    })
     .then(() => sendCorrectResponse(res))
     .catch((err) => sendErrorResponse(res, err));
 };
