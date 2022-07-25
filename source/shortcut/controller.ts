@@ -58,7 +58,7 @@ const deleteShortcut = (req: Request, res: Response, next: NextFunction) => {
         // creating set of all words
         words.add(shortcut.shortlink);
         shortcut.description.split(" ").forEach((word) => words.add(word));
-        (shortcut.tags as unknown as string).split(",").forEach((word) => words.add(word));
+        shortcut.tags?.forEach((word) => words.add(word));
         shortcutId = shortcut.id;
     })
     .then(() => deleteShortcutFromShortlink(userId, shortlink))

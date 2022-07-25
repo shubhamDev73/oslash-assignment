@@ -9,7 +9,7 @@ CREATE TABLE shortcuts (
     url VARCHAR(1000) NOT NULL,
     shortlink VARCHAR(100) NOT NULL,
     description VARCHAR(1000) NOT NULL,
-    tags VARCHAR(1000),
+    tags TEXT[],
     CONSTRAINT fk_user
         FOREIGN KEY(user_id) 
             REFERENCES users(id)

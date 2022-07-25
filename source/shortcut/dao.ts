@@ -5,13 +5,9 @@ import { QueryResult } from "pg";
 const APP_ID = "shortcut";
 
 export const createNewShortcut = (userId: string, shortcut: NewShortcut) => new Promise<number>((resolve, reject) => {
-    if (shortcut.tags != null && shortcut.tags.length == 0) {
-        shortcut.tags = undefined;
-    }
-
     db.query(
         "INSERT INTO shortcuts (user_id, url, shortlink, description, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id;",
-        [userId, shortcut.url, shortcut.shortlink, shortcut.description, shortcut.tags?.join(",")],
+        [userId, shortcut.url, shortcut.shortlink, shortcut.description, shortcut.tags],
 
         (err: Error, result: QueryResult<any>) => {
             if (err) { reject(err); }
