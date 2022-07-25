@@ -36,6 +36,9 @@ const createShortcutDbEntries = async (userId: string, shortcut: NewShortcut) =>
 };
 
 const createShortcut = (req: Request, res: Response, next: NextFunction) => {
+    try { new URL(req.body.url) }
+    catch(err) { return sendErrorResponse(res, "Invalid url"); }
+
     createShortcutDbEntries(res.locals.session.userId, req.body)
     .then(() => sendCorrectResponse(res))
     .catch((err) => sendErrorResponse(res, "Shortlink already exists"));
