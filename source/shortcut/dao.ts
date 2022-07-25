@@ -22,7 +22,7 @@ export const createNewShortcut = (userId: string, shortcut: NewShortcut) => new 
 
 export const getShortcutFromShortlink = (userId: string, shortlink: string) => new Promise<Shortcut>((resolve, reject) => {
     db.query(
-        "SELECT * FROM shortcuts WHERE user_id = $1 AND shortlink = $2;",
+        "SELECT id, url, shortlink, description, tags FROM shortcuts WHERE user_id = $1 AND shortlink = $2;",
         [userId, shortlink],
 
         (err: Error, result: QueryResult<any>) => {
@@ -34,7 +34,7 @@ export const getShortcutFromShortlink = (userId: string, shortlink: string) => n
 
 export const getShortcutsFromIds = (userId: string, ids: number[]) => new Promise<Shortcut[]>((resolve, reject) => {
     db.query(
-        "SELECT * FROM shortcuts WHERE user_id = $1 AND id = ANY($2);",
+        "SELECT id, url, shortlink, description, tags FROM shortcuts WHERE user_id = $1 AND id = ANY($2);",
         [userId, `{${ids.join(",")}}`],
 
         (err: Error, result: QueryResult<any>) => {
@@ -44,9 +44,9 @@ export const getShortcutsFromIds = (userId: string, ids: number[]) => new Promis
     );
 });
 
-export const getAllShortcutsForUser = (userId: string) => new Promise<Shortcut[]>((resolve, reject) => {
+export const getAllShortcutsForUser = (userId: string) => new Promise<NewShortcut[]>((resolve, reject) => {
     db.query(
-        "SELECT * FROM shortcuts WHERE user_id = $1;",
+        "SELECT url, shortlink, description, tags FROM shortcuts WHERE user_id = $1;",
         [userId],
 
         (err: Error, result: QueryResult<any>) => {
@@ -58,11 +58,11 @@ export const getAllShortcutsForUser = (userId: string) => new Promise<Shortcut[]
 
 export const deleteShortcutFromShortlink = (userId: string, shortlink: string) => new Promise<void>((resolve, reject) => {
     db.query(
-        "DELETE FROM shortcuts WHERE user_id = $1 AND shortlink = $2;",
+        "DELETE FROM shortcuts WHERE user_id = $1 AND shortlink = $2 RETURNING id;",
         [userId, shortlink],
 
         (err: Error, result: QueryResult<any>) => {
-            if (err) { reject(err); }
+            if (err || result.rowCount != 1) { reject(err); }
             else { resolve(); }
         }
     );
@@ -76,8 +76,6 @@ export const deleteWordShortcut = (userId: string, word: string, shortcutId: num
     return redis.hDel(APP_ID, userId, word, shortcutId.toString());
 };
 
-export const searchShortcutsFromWord = (userId: string, word: string) => new Promise<{ [shortcutId: string]: string }>((resolve, reject) => {
-    redis.hGetAll(APP_ID, userId, word)
-    .then(resolve)
-    .catch(reject);
-});
+export const searchShortcutsFromWord = (userId: string, word: string) => {
+    return redis.hGetAll(APP_ID, userId, word);
+};

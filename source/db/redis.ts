@@ -15,8 +15,8 @@ class Redis {
         return userId + ":" + appId + ":" + key;
     }
 
-    insert (appId: string, userId: string, key: string, data: any, timeout?: number) {
-        return this.client.set(this.getKey(appId, userId, key), data, timeout ? {'PX': timeout} : undefined)
+    insert (appId: string, userId: string, key: string, data: any, timeout: number) {
+        return this.client.set(this.getKey(appId, userId, key), data, {'PX': timeout})
     }
 
     exists (appId: string, userId: string, key: string) {
@@ -25,10 +25,6 @@ class Redis {
             .then((value: number | null) => resolve(value === 1))
             .catch(reject);
         });
-    }
-
-    get (appId: string, userId: string, key: string) {
-        return this.client.get(this.getKey(appId, userId, key));
     }
 
     hSet (appId: string, userId: string, key: string, hKey: string, data: any) {

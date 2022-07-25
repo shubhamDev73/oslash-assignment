@@ -24,22 +24,22 @@ router.use((req: Request, res: Response, next: NextFunction) => {
 
 // auth middleware
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const unauthorized = (error: string) => res.status(401).json({
+    const unauthorized = () => res.status(401).json({
         message: "error",
-        error: error
+        error: "Invalid auth"
     });
 
     const auth: string = req.headers.authorization || '';
     const token: string = auth.substring(7);
 
     if (auth.length == 0 || token.length == 0) {
-        return unauthorized("Token not found.");
+        return unauthorized();
     }
 
     authUtils.decodeToken(token)
     .then((decodeResult: DecodeResult) => {
         if (!decodeResult.valid) {
-            return unauthorized("Failed to decode or validate authorization token.");
+            return unauthorized();
         }
     
         res.locals.session = decodeResult.session;
@@ -47,7 +47,7 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     
         next();
     })
-    .catch((err) => unauthorized("Failed to decode or validate authorization token."));
+    .catch((err) => unauthorized());
 }
 
 // base routes
