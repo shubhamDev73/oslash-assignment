@@ -42,7 +42,7 @@ export const getShortcutsFromIds = (userId: string, ids: number[]) => new Promis
 
 export const getAllShortcutsForUser = (userId: string) => new Promise<NewShortcut[]>((resolve, reject) => {
     db.query(
-        "SELECT url, shortlink, description, tags FROM shortcuts WHERE user_id = $1;",
+        "SELECT url, shortlink, description, tags FROM shortcuts WHERE user_id = $1 ORDER BY id;",
         [userId],
 
         (err: Error, result: QueryResult<any>) => {

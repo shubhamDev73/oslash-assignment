@@ -1,6 +1,6 @@
 import { createNewShortcut, deleteShortcutFromShortlink, deleteWordShortcut, getAllShortcutsForUser, getShortcutFromShortlink, getShortcutsFromIds, insertShortcutScore, searchShortcutsFromWord } from './dao'
 import { Request, Response, NextFunction } from 'express';
-import { NewShortcut, Shortcut, ShortcutScore } from './interface';
+import { NewShortcut, Shortcut, ShortcutScore, Sort } from './interface';
 
 const sendCorrectResponse = (res: Response) => res.status(200).json({message: "success"});
 const sendErrorResponse = (res: Response, error: String) => res.status(200).json({
@@ -45,8 +45,21 @@ const createShortcut = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const listShortcuts = (req: Request, res: Response, next: NextFunction) => {
+    const sort: Sort = (req.query.sort as Sort) ?? "date";
+
     getAllShortcutsForUser(res.locals.session.userId)
-    .then((shortcuts: NewShortcut[]) => res.status(200).json(shortcuts))
+    .then((shortcuts: NewShortcut[]) => res.status(200).json(
+        shortcuts.sort((a, b) => {
+            switch(sort) {
+                case "shortlink":
+                    return a.shortlink.localeCompare(b.shortlink);
+                case "description":
+                    return a.description.localeCompare(b.description);
+                case "date":
+                default:
+                    return 1;
+            }
+    })))
     .catch((err) => sendErrorResponse(res, "Some error occurred"));
 };
 

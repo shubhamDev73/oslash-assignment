@@ -13,3 +13,5 @@ export interface ShortcutScore {
     shortcutId: number,
     score: number
 }
+
+export type Sort = "shortlink" | "description" | "date";

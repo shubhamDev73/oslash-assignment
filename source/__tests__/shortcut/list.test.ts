@@ -31,8 +31,8 @@ describe('Create shortcut', () => {
 
     afterAll(() => server.close());
 
-    it('POST /shortcut/list for correct user lists shortcuts', async () => {
-        const shortcut = [getShortcut(), getShortcut()];
+    it('GET /shortcut/list for correct user lists shortcuts', async () => {
+        const shortcuts = [getShortcut(), getShortcut()];
         var res: any;
 
         // no shortcuts
@@ -44,31 +44,63 @@ describe('Create shortcut', () => {
         // 1 shortcut
         await request.post('/shortcut/create')
             .set('Authorization', `Bearer ${token}`)
-            .send(shortcut[0])
+            .send(shortcuts[0])
 
         res = await request.get('/shortcut/list').set('Authorization', `Bearer ${token}`)
 
         expect(res.status).toEqual(200);
-        expect(res.body).toEqual([shortcut[0]]);
-    
+        expect(res.body).toEqual([shortcuts[0]]);
     
         // multiple shortcuts
         await request.post('/shortcut/create')
             .set('Authorization', `Bearer ${token}`)
-            .send(shortcut[1])
+            .send(shortcuts[1])
 
         res = await request.get('/shortcut/list').set('Authorization', `Bearer ${token}`)
 
         expect(res.status).toEqual(200);
         const receivedShortcuts = res.body;
 
-        if (receivedShortcuts[0].shortlink == shortcut[0].shortlink) {
-            expect(receivedShortcuts[0]).toEqual(shortcut[0]);
-            expect(receivedShortcuts[1]).toEqual(shortcut[1]);
+        if (receivedShortcuts[0].shortlink == shortcuts[0].shortlink) {
+            expect(receivedShortcuts[0]).toEqual(shortcuts[0]);
+            expect(receivedShortcuts[1]).toEqual(shortcuts[1]);
         } else {
-            expect(receivedShortcuts[0]).toEqual(shortcut[1]);
-            expect(receivedShortcuts[1]).toEqual(shortcut[0]);
+            expect(receivedShortcuts[0]).toEqual(shortcuts[1]);
+            expect(receivedShortcuts[1]).toEqual(shortcuts[0]);
         }
+    });
+
+    it('Sort works', async () => {
+        var res;
+
+        res = await request.post('/auth/register').send({username: username + '2', password: password})
+        const newToken = res.body.token;
+
+        let shortcuts = [getShortcut(), getShortcut(), getShortcut()];
+        shortcuts[0].shortlink = "c";
+        shortcuts[1].shortlink = "b";
+        shortcuts[2].shortlink = "a";
+
+        await request.post('/shortcut/create')
+            .set('Authorization', `Bearer ${newToken}`)
+            .send(shortcuts[0]);
+        await sleep(1000);
+
+        await request.post('/shortcut/create')
+            .set('Authorization', `Bearer ${newToken}`)
+            .send(shortcuts[1]);
+        await sleep(1000);
+
+        await request.post('/shortcut/create')
+            .set('Authorization', `Bearer ${newToken}`)
+            .send(shortcuts[2]);
+        await sleep(1000);
+
+        res = await request.get('/shortcut/list?sort=date').set('Authorization', `Bearer ${newToken}`);
+        expect(res.body).toEqual(shortcuts);
+
+        res = await request.get('/shortcut/list?sort=shortlink').set('Authorization', `Bearer ${newToken}`);
+        expect(res.body).toEqual(shortcuts.reverse());
     });
 
     it('GET /shortcut/list for invalid token returns error', async () => {
@@ -85,7 +117,7 @@ describe('Create shortcut', () => {
     it('GET /shortcut/list for expired token returns error', async () => {
         var res;
 
-        // sleep for 16 seconds
+        // sleep for 12 seconds
         await sleep(12000);
 
         res = await request.get('/shortcut/list')
