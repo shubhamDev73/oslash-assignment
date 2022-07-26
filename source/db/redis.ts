@@ -2,7 +2,9 @@ import { createClient } from 'redis';
 
 class Redis {
 
-    private client = createClient();
+    private client = createClient({
+        url: `redis://${process.env.REDIS_HOST}/`
+    });
 
     async initialise () {
         await this.client.connect()
